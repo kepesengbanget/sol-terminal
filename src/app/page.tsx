@@ -37,6 +37,98 @@ export default function Home() {
   );
 }
 
+// ── Creator Popup ───────────────────────────────────────────
+
+function CreatorPopup({
+  creator,
+  onClose,
+}: {
+  creator: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/creator?address=${creator}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      });
+  }, [creator]);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#0d0d15] border border-[var(--border)] rounded-lg p-4 max-w-lg w-full max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-[var(--green)] font-bold text-sm">
+            CREATOR DEPLOYMENTS
+          </h3>
+          <button onClick={onClose} className="text-[var(--dim)] hover:text-[var(--fg)]">
+            ✕
+          </button>
+        </div>
+
+        {loading && <p className="text-[var(--dim)]">Loading...</p>}
+
+        {data && (
+          <>
+            <div className="flex gap-4 mb-3 text-xs">
+              <div>
+                <p className="text-[var(--dim)]">WALLET</p>
+                <p className="font-mono text-[11px]">{creator.slice(0, 8)}...{creator.slice(-6)}</p>
+              </div>
+              <div>
+                <p className="text-[var(--dim)]">TOTAL DEPLOYED</p>
+                <p className="text-[var(--green)] font-bold text-lg">{data.totalCoins}</p>
+              </div>
+              <div>
+                <p className="text-[var(--dim)]">GRADUATED</p>
+                <p className="text-[var(--blue)] font-bold text-lg">
+                  {data.coins.filter((c: any) => c.complete).length}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-2">
+              {data.coins.map((c: any, i: number) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-center py-1 text-xs border-b border-[var(--border)]"
+                >
+                  <div>
+                    <span className="text-[var(--green)] font-bold">{c.symbol}</span>
+                    <span className="text-[var(--dim)] ml-2">{c.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>${formatNum(c.usd_market_cap)}</span>
+                    {c.complete ? (
+                      <span className="text-[var(--blue)] text-[10px] px-1 border border-[var(--blue)] rounded">
+                        RAY
+                      </span>
+                    ) : (
+                      <span className="text-[var(--yellow)] text-[10px] px-1 border border-[var(--yellow)] rounded">
+                        BOND
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Token Feed (pump.fun) ───────────────────────────────────
 
 function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
@@ -44,6 +136,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [sort, setSort] = useState<SortKey>("created_timestamp");
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
 
   const load = async (q?: string) => {
     setLoading(true);
@@ -59,6 +152,13 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
 
   return (
     <div>
+      {selectedCreator && (
+        <CreatorPopup
+          creator={selectedCreator}
+          onClose={() => setSelectedCreator(null)}
+        />
+      )}
+
       <div className="flex gap-2 mb-4">
         <input
           value={query}
@@ -92,6 +192,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
             <tr className="text-[var(--dim)] border-b border-[var(--border)]">
               <th className="text-left p-2">TOKEN</th>
               <th className="text-left p-2">CREATOR</th>
+              <th className="text-right p-2">DEPLOYED</th>
               <th className="text-right p-2">MCAP</th>
               <th className="text-right p-2">SOL RESERVE</th>
               <th className="text-center p-2">STATUS</th>
@@ -120,21 +221,25 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                       />
                     )}
                     <div>
-                      <span className="text-[var(--green)] font-bold">
-                        {t.symbol}
-                      </span>
-                      <span className="text-[var(--dim)] ml-2 text-[11px]">
-                        {t.name}
-                      </span>
+                      <span className="text-[var(--green)] font-bold">{t.symbol}</span>
+                      <span className="text-[var(--dim)] ml-2 text-[11px]">{t.name}</span>
                     </div>
                   </div>
                 </td>
-                <td className="p-2 text-[var(--dim)] font-mono text-[11px]">
+                <td
+                  className="p-2 text-[var(--blue)] font-mono text-[11px] hover:underline cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCreator(t.creator);
+                  }}
+                >
                   {t.username || t.creator?.slice(0, 6) + "..."}
                 </td>
-                <td className="text-right p-2">
-                  ${formatNum(t.usd_market_cap)}
+                <td className="text-right p-2 text-[var(--dim)]">
+                  {/* placeholder, filled by creator click */}
+                  —
                 </td>
+                <td className="text-right p-2">${formatNum(t.usd_market_cap)}</td>
                 <td className="text-right p-2">
                   {(t.real_sol_reserves / 1e9).toFixed(2)} SOL
                 </td>
@@ -149,9 +254,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                     </span>
                   )}
                 </td>
-                <td className="text-right p-2 text-[var(--dim)]">
-                  {t.reply_count}
-                </td>
+                <td className="text-right p-2 text-[var(--dim)]">{t.reply_count}</td>
                 <td className="text-right p-2 text-[var(--dim)]">
                   {formatAge(t.created_timestamp)}
                 </td>
@@ -170,6 +273,7 @@ function RugChecker() {
   const [address, setAddress] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
 
   const check = async () => {
     if (!address.trim()) return;
@@ -181,6 +285,13 @@ function RugChecker() {
 
   return (
     <div>
+      {selectedCreator && (
+        <CreatorPopup
+          creator={selectedCreator}
+          onClose={() => setSelectedCreator(null)}
+        />
+      )}
+
       <div className="flex gap-2 mb-4">
         <input
           value={address}
@@ -206,9 +317,7 @@ function RugChecker() {
               <h2 className="text-lg text-[var(--green)] font-bold">
                 {result.symbol} — {result.name}
               </h2>
-              <p className="text-[var(--dim)] text-xs font-mono">
-                {result.address}
-              </p>
+              <p className="text-[var(--dim)] text-xs font-mono">{result.address}</p>
             </div>
             <div
               className={`text-3xl font-bold ${
@@ -225,9 +334,7 @@ function RugChecker() {
 
           <div className="mb-4">
             {result.risks.map((r: string, i: number) => (
-              <p key={i} className="text-sm mb-1">
-                {r}
-              </p>
+              <p key={i} className="text-sm mb-1">{r}</p>
             ))}
           </div>
 
@@ -304,9 +411,7 @@ function WalletTracker() {
 
       {txs.length > 0 && (
         <div>
-          <p className="text-[var(--dim)] text-xs mb-2">
-            Last {txs.length} transactions
-          </p>
+          <p className="text-[var(--dim)] text-xs mb-2">Last {txs.length} transactions</p>
           {txs.map((tx, i) => (
             <div
               key={i}

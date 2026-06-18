@@ -177,3 +177,28 @@ async function rpcCall(method: string, params: any[]): Promise<any> {
   const d = await r.json();
   return d.result;
 }
+
+// Creator stats — how many coins deployed by this wallet
+export type CreatorStats = {
+  creator: string;
+  totalCoins: number;
+  coins: { mint: string; symbol: string; name: string; usd_market_cap: number; complete: boolean }[];
+};
+
+export async function getCreatorCoins(creator: string): Promise<CreatorStats> {
+  const r = await fetch(
+    `${PUMP_API}/coins?offset=0&limit=50&creator=${creator}&sort=created_timestamp&order=DESC`
+  );
+  const coins = await r.json();
+  return {
+    creator,
+    totalCoins: coins.length,
+    coins: coins.map((c: any) => ({
+      mint: c.mint,
+      symbol: c.symbol,
+      name: c.name,
+      usd_market_cap: c.usd_market_cap,
+      complete: c.complete,
+    })),
+  };
+}
