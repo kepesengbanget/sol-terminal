@@ -1,19 +1,17 @@
 "use client";
-import { useState } from "react";
-
-// ponytail: single page component, no routing, no state management library
+import { useState, useEffect } from "react";
 
 type Tab = "feed" | "rugcheck" | "wallet";
+type SortKey = "created_timestamp" | "usd_market_cap" | "reply_count";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("feed");
 
   return (
     <div className="min-h-screen p-4 max-w-7xl mx-auto">
-      {/* Header */}
       <header className="flex items-center justify-between border-b border-[#1a1a2e] pb-3 mb-4">
         <h1 className="text-[var(--green)] text-lg font-bold tracking-wider">
-          ◆ SOL TERMINAL
+          ◆ PUMP TERMINAL
         </h1>
         <nav className="flex gap-1">
           {(["feed", "rugcheck", "wallet"] as Tab[]).map((t) => (
@@ -32,7 +30,6 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* Content */}
       {tab === "feed" && <TokenFeed onNavigate={setTab} />}
       {tab === "rugcheck" && <RugChecker />}
       {tab === "wallet" && <WalletTracker />}
@@ -40,29 +37,25 @@ export default function Home() {
   );
 }
 
-// ── Token Feed ──────────────────────────────────────────────
+// ── Token Feed (pump.fun) ───────────────────────────────────
 
 function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const [tokens, setTokens] = useState<any[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState<SortKey>("created_timestamp");
 
-  const search = async () => {
-    if (!query.trim()) return;
+  const load = async (q?: string) => {
     setLoading(true);
-    const r = await fetch(`/api/tokens?q=${encodeURIComponent(query)}`);
-    const d = await r.json();
-    setTokens(d);
+    const params = q ? `?q=${encodeURIComponent(q)}` : `?sort=${sort}`;
+    const r = await fetch(`/api/tokens${params}`);
+    setTokens(await r.json());
     setLoading(false);
   };
 
-  const loadNew = async () => {
-    setLoading(true);
-    const r = await fetch("/api/tokens?new=1");
-    const d = await r.json();
-    setTokens(d);
-    setLoading(false);
-  };
+  useEffect(() => {
+    load();
+  }, [sort]);
 
   return (
     <div>
@@ -70,22 +63,25 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && search()}
-          placeholder="Search token or paste CA..."
+          onKeyDown={(e) => e.key === "Enter" && load(query)}
+          placeholder="Search pump.fun token..."
           className="flex-1 px-3 py-2 rounded"
         />
         <button
-          onClick={search}
+          onClick={() => load(query)}
           className="px-4 py-2 bg-[var(--green)] text-black font-bold rounded text-xs"
         >
           SEARCH
         </button>
-        <button
-          onClick={loadNew}
-          className="px-4 py-2 border border-[var(--green)] text-[var(--green)] rounded text-xs"
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          className="px-3 py-2 rounded bg-[#0d0d15] border border-[var(--border)] text-[var(--fg)] text-xs"
         >
-          NEW PAIRS
-        </button>
+          <option value="created_timestamp">NEWEST</option>
+          <option value="usd_market_cap">MARKET CAP</option>
+          <option value="reply_count">ACTIVITY</option>
+        </select>
       </div>
 
       {loading && <p className="text-[var(--dim)]">Loading...</p>}
@@ -95,13 +91,11 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
           <thead>
             <tr className="text-[var(--dim)] border-b border-[var(--border)]">
               <th className="text-left p-2">TOKEN</th>
-              <th className="text-right p-2">PRICE</th>
-              <th className="text-right p-2">24H VOL</th>
-              <th className="text-right p-2">LIQ</th>
+              <th className="text-left p-2">CREATOR</th>
               <th className="text-right p-2">MCAP</th>
-              <th className="text-right p-2">24H %</th>
-              <th className="text-right p-2">BUYS</th>
-              <th className="text-right p-2">SELLS</th>
+              <th className="text-right p-2">SOL RESERVE</th>
+              <th className="text-center p-2">STATUS</th>
+              <th className="text-right p-2">REPLIES</th>
               <th className="text-right p-2">AGE</th>
             </tr>
           </thead>
@@ -111,45 +105,55 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                 key={i}
                 className="border-b border-[var(--border)] hover:bg-[#0d0d15] cursor-pointer"
                 onClick={() => {
-                  setQuery(t.baseToken?.address || "");
+                  setQuery(t.mint);
                   onNavigate("rugcheck");
                 }}
               >
                 <td className="p-2">
-                  <span className="text-[var(--green)] font-bold">
-                    {t.baseToken?.symbol}
-                  </span>
-                  <span className="text-[var(--dim)] ml-2">
-                    {t.baseToken?.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {t.image_uri && (
+                      <img
+                        src={t.image_uri}
+                        alt=""
+                        className="w-6 h-6 rounded-full"
+                        onError={(e) => (e.currentTarget.style.display = "none")}
+                      />
+                    )}
+                    <div>
+                      <span className="text-[var(--green)] font-bold">
+                        {t.symbol}
+                      </span>
+                      <span className="text-[var(--dim)] ml-2 text-[11px]">
+                        {t.name}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td className="p-2 text-[var(--dim)] font-mono text-[11px]">
+                  {t.username || t.creator?.slice(0, 6) + "..."}
                 </td>
                 <td className="text-right p-2">
-                  ${parseFloat(t.priceUsd || "0").toFixed(6)}
+                  ${formatNum(t.usd_market_cap)}
                 </td>
                 <td className="text-right p-2">
-                  ${formatNum(t.volume?.h24)}
+                  {(t.real_sol_reserves / 1e9).toFixed(2)} SOL
                 </td>
-                <td className="text-right p-2">
-                  ${formatNum(t.liquidity?.usd)}
-                </td>
-                <td className="text-right p-2">${formatNum(t.fdv)}</td>
-                <td
-                  className={`text-right p-2 ${
-                    (t.priceChange?.h24 || 0) >= 0
-                      ? "text-[var(--green)]"
-                      : "text-[var(--red)]"
-                  }`}
-                >
-                  {(t.priceChange?.h24 || 0).toFixed(1)}%
-                </td>
-                <td className="text-right p-2 text-[var(--green)]">
-                  {t.txns?.h24?.buys || 0}
-                </td>
-                <td className="text-right p-2 text-[var(--red)]">
-                  {t.txns?.h24?.sells || 0}
+                <td className="text-center p-2">
+                  {t.complete ? (
+                    <span className="text-[var(--blue)] text-[10px] px-2 py-0.5 border border-[var(--blue)] rounded">
+                      RAYDIUM
+                    </span>
+                  ) : (
+                    <span className="text-[var(--yellow)] text-[10px] px-2 py-0.5 border border-[var(--yellow)] rounded">
+                      BONDING
+                    </span>
+                  )}
                 </td>
                 <td className="text-right p-2 text-[var(--dim)]">
-                  {formatAge(t.pairCreatedAt)}
+                  {t.reply_count}
+                </td>
+                <td className="text-right p-2 text-[var(--dim)]">
+                  {formatAge(t.created_timestamp)}
                 </td>
               </tr>
             ))}
@@ -171,8 +175,7 @@ function RugChecker() {
     if (!address.trim()) return;
     setLoading(true);
     const r = await fetch(`/api/rugcheck?address=${address}`);
-    const d = await r.json();
-    setResult(d);
+    setResult(await r.json());
     setLoading(false);
   };
 
@@ -183,7 +186,7 @@ function RugChecker() {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && check()}
-          placeholder="Paste token mint address..."
+          placeholder="Paste pump.fun mint address..."
           className="flex-1 px-3 py-2 rounded"
         />
         <button
@@ -203,7 +206,9 @@ function RugChecker() {
               <h2 className="text-lg text-[var(--green)] font-bold">
                 {result.symbol} — {result.name}
               </h2>
-              <p className="text-[var(--dim)] text-xs">{result.address}</p>
+              <p className="text-[var(--dim)] text-xs font-mono">
+                {result.address}
+              </p>
             </div>
             <div
               className={`text-3xl font-bold ${
@@ -219,7 +224,6 @@ function RugChecker() {
           </div>
 
           <div className="mb-4">
-            <h3 className="text-[var(--dim)] text-xs mb-2">RISKS</h3>
             {result.risks.map((r: string, i: number) => (
               <p key={i} className="text-sm mb-1">
                 {r}
@@ -230,25 +234,13 @@ function RugChecker() {
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <p className="text-[var(--dim)]">MINT AUTHORITY</p>
-              <p
-                className={
-                  result.mintAuthority
-                    ? "text-[var(--red)]"
-                    : "text-[var(--green)]"
-                }
-              >
+              <p className={result.mintAuthority ? "text-[var(--red)]" : "text-[var(--green)]"}>
                 {result.mintAuthority || "None ✅"}
               </p>
             </div>
             <div>
               <p className="text-[var(--dim)]">FREEZE AUTHORITY</p>
-              <p
-                className={
-                  result.freezeAuthority
-                    ? "text-[var(--red)]"
-                    : "text-[var(--green)]"
-                }
-              >
+              <p className={result.freezeAuthority ? "text-[var(--red)]" : "text-[var(--green)]"}>
                 {result.freezeAuthority || "None ✅"}
               </p>
             </div>
@@ -258,18 +250,11 @@ function RugChecker() {
             <div className="mt-4">
               <h3 className="text-[var(--dim)] text-xs mb-2">TOP HOLDERS</h3>
               {result.topHolders.map((h: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between text-xs mb-1 font-mono"
-                >
+                <div key={i} className="flex justify-between text-xs mb-1 font-mono">
                   <span className="text-[var(--dim)]">
                     {h.address.slice(0, 4)}...{h.address.slice(-4)}
                   </span>
-                  <span
-                    className={
-                      h.pct > 10 ? "text-[var(--red)]" : "text-[var(--fg)]"
-                    }
-                  >
+                  <span className={h.pct > 10 ? "text-[var(--red)]" : "text-[var(--fg)]"}>
                     {h.pct.toLocaleString()} tokens
                   </span>
                 </div>
@@ -293,8 +278,7 @@ function WalletTracker() {
     if (!address.trim()) return;
     setLoading(true);
     const r = await fetch(`/api/wallet?address=${address}`);
-    const d = await r.json();
-    setTxs(d);
+    setTxs(await r.json());
     setLoading(false);
   };
 
@@ -328,32 +312,20 @@ function WalletTracker() {
               key={i}
               className="border-b border-[var(--border)] py-2 flex justify-between items-center"
             >
-              <div>
-                <a
-                  href={`https://solscan.io/tx/${tx.signature}`}
-                  target="_blank"
-                  className="text-[var(--blue)] hover:underline font-mono text-xs"
-                >
-                  {tx.signature.slice(0, 16)}...
-                </a>
-              </div>
+              <a
+                href={`https://solscan.io/tx/${tx.signature}`}
+                target="_blank"
+                className="text-[var(--blue)] hover:underline font-mono text-xs"
+              >
+                {tx.signature.slice(0, 16)}...
+              </a>
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-[var(--dim)]">
-                  slot {tx.slot.toLocaleString()}
-                </span>
-                <span
-                  className={
-                    tx.type === "success"
-                      ? "text-[var(--green)]"
-                      : "text-[var(--red)]"
-                  }
-                >
+                <span className="text-[var(--dim)]">slot {tx.slot.toLocaleString()}</span>
+                <span className={tx.type === "success" ? "text-[var(--green)]" : "text-[var(--red)]"}>
                   {tx.type}
                 </span>
                 <span className="text-[var(--dim)]">
-                  {tx.timestamp
-                    ? new Date(tx.timestamp * 1000).toLocaleString()
-                    : "—"}
+                  {tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : "—"}
                 </span>
               </div>
             </div>
@@ -376,8 +348,10 @@ function formatNum(n: number | undefined): string {
 
 function formatAge(ts: number): string {
   if (!ts) return "—";
-  const hours = (Date.now() - ts) / 3600000;
-  if (hours < 1) return Math.floor(hours * 60) + "m";
+  const ms = Date.now() - ts;
+  const mins = ms / 60000;
+  if (mins < 60) return Math.floor(mins) + "m";
+  const hours = mins / 60;
   if (hours < 24) return Math.floor(hours) + "h";
   return Math.floor(hours / 24) + "d";
 }
