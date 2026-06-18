@@ -222,6 +222,16 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                     )}
                     <div>
                       <span className="text-[var(--green)] font-bold">{t.symbol}</span>
+                      <button
+                        className="ml-1 text-[var(--dim)] hover:text-[var(--green)] text-[10px] align-middle"
+                        title="Copy CA"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(t.mint);
+                        }}
+                      >
+                        📋
+                      </button>
                       <span className="text-[var(--dim)] ml-2 text-[11px]">{t.name}</span>
                     </div>
                   </div>
