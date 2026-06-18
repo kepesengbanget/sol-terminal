@@ -149,6 +149,9 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
 
   useEffect(() => {
     load();
+    // Auto-refresh setiap 30 detik
+    const interval = setInterval(() => load(), 30_000);
+    return () => clearInterval(interval);
   }, [sort]);
 
   return (

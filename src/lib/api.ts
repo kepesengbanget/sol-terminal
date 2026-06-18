@@ -3,6 +3,20 @@
 const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 const PUMP_API = "https://frontend-api-v3.pump.fun";
 
+// Simple in-memory cache with TTL
+const cache = new Map<string, { data: any; ts: number }>();
+const CREATOR_CACHE_TTL = 30_000; // 30 detik
+
+function getCached<T>(key: string, ttl: number): T | null {
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.ts < ttl) return entry.data as T;
+  return null;
+}
+
+function setCache(key: string, data: any) {
+  cache.set(key, { data, ts: Date.now() });
+}
+
 export type PumpToken = {
   mint: string;
   name: string;
@@ -186,11 +200,15 @@ export type CreatorStats = {
 };
 
 export async function getCreatorCoins(creator: string): Promise<CreatorStats> {
+  const cacheKey = `creator:${creator}`;
+  const cached = getCached<CreatorStats>(cacheKey, CREATOR_CACHE_TTL);
+  if (cached) return cached;
+
   const r = await fetch(
     `${PUMP_API}/coins?offset=0&limit=50&creator=${creator}&sort=created_timestamp&order=DESC`
   );
   const coins = await r.json();
-  return {
+  const result: CreatorStats = {
     creator,
     totalCoins: coins.length,
     coins: coins.map((c: any) => ({
@@ -201,4 +219,6 @@ export async function getCreatorCoins(creator: string): Promise<CreatorStats> {
       complete: c.complete,
     })),
   };
+  setCache(cacheKey, result);
+  return result;
 }
