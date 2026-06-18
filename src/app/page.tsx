@@ -137,6 +137,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const [loading, setLoading] = useState(false);
   const [sort, setSort] = useState<SortKey>("created_timestamp");
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [copiedMint, setCopiedMint] = useState<string | null>(null);
 
   const load = async (q?: string) => {
     setLoading(true);
@@ -223,14 +224,21 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                     <div>
                       <span className="text-[var(--green)] font-bold">{t.symbol}</span>
                       <button
-                        className="ml-1 text-[var(--dim)] hover:text-[var(--green)] text-[10px] align-middle"
+                        className="ml-1 text-[var(--dim)] hover:text-[var(--green)] text-[10px] align-middle relative"
                         title="Copy CA"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigator.clipboard.writeText(t.mint);
+                          setCopiedMint(t.mint);
+                          setTimeout(() => setCopiedMint(null), 1500);
                         }}
                       >
                         📋
+                        {copiedMint === t.mint && (
+                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[var(--green)] text-black text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">
+                            Copied!
+                          </span>
+                        )}
                       </button>
                       <span className="text-[var(--dim)] ml-2 text-[11px]">{t.name}</span>
                     </div>
