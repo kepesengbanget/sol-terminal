@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q");
   const offset = parseInt(req.nextUrl.searchParams.get("offset") || "0");
   const sort = req.nextUrl.searchParams.get("sort") || "created_timestamp";
+  const filter = req.nextUrl.searchParams.get("filter"); // "first" = only deployed=1
 
   try {
     const data = q
@@ -18,10 +19,15 @@ export async function GET(req: NextRequest) {
     );
     const creatorMap = new Map(stats.map((s) => [s.creator, s.totalCoins]));
 
-    const enriched = data.map((t: any) => ({
+    let enriched = data.map((t: any) => ({
       ...t,
       deployedCount: creatorMap.get(t.creator) || 0,
     }));
+
+    // Filter hanya dev yang pertama kali deploy
+    if (filter === "first") {
+      enriched = enriched.filter((t: any) => t.deployedCount === 1);
+    }
 
     return NextResponse.json(enriched);
   } catch (e: any) {

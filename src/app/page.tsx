@@ -138,11 +138,15 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const [sort, setSort] = useState<SortKey>("created_timestamp");
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [copiedMint, setCopiedMint] = useState<string | null>(null);
+  const [onlyFirst, setOnlyFirst] = useState(false); // filter deployed=1
 
   const load = async (q?: string) => {
     setLoading(true);
-    const params = q ? `?q=${encodeURIComponent(q)}` : `?sort=${sort}`;
-    const r = await fetch(`/api/tokens${params}`);
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    else params.set("sort", sort);
+    if (onlyFirst) params.set("filter", "first");
+    const r = await fetch(`/api/tokens?${params.toString()}`);
     setTokens(await r.json());
     setLoading(false);
   };
@@ -152,7 +156,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
     // Auto-refresh setiap 30 detik
     const interval = setInterval(() => load(), 30_000);
     return () => clearInterval(interval);
-  }, [sort]);
+  }, [sort, onlyFirst]);
 
   return (
     <div>
@@ -186,6 +190,16 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
           <option value="usd_market_cap">MARKET CAP</option>
           <option value="reply_count">ACTIVITY</option>
         </select>
+        <button
+          onClick={() => setOnlyFirst(!onlyFirst)}
+          className={`px-3 py-2 rounded text-xs font-bold ${
+            onlyFirst
+              ? "bg-[var(--green)] text-black"
+              : "bg-[#0d0d15] border border-[var(--border)] text-[var(--dim)]"
+          }`}
+        >
+          DEPLOYED=1
+        </button>
       </div>
 
       {loading && <p className="text-[var(--dim)]">Loading...</p>}
