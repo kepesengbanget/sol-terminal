@@ -236,8 +236,7 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                   {t.username || t.creator?.slice(0, 6) + "..."}
                 </td>
                 <td className="text-right p-2 text-[var(--dim)]">
-                  {/* placeholder, filled by creator click */}
-                  —
+                  {(t as any).deployedCount || "—"}
                 </td>
                 <td className="text-right p-2">${formatNum(t.usd_market_cap)}</td>
                 <td className="text-right p-2">
