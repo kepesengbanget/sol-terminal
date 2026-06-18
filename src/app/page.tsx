@@ -264,7 +264,15 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                   {(t.real_sol_reserves / 1e9).toFixed(2)} SOL
                 </td>
                 <td className="text-center p-2">
-                  {t.complete ? (
+                  {t.is_banned ? (
+                    <span className="text-red-500 text-[10px] px-2 py-0.5 border border-red-500 rounded">
+                      BANNED
+                    </span>
+                  ) : t.nsfw ? (
+                    <span className="text-purple-400 text-[10px] px-2 py-0.5 border border-purple-400 rounded">
+                      NSFW
+                    </span>
+                  ) : t.complete ? (
                     <span className="text-[var(--blue)] text-[10px] px-2 py-0.5 border border-[var(--blue)] rounded">
                       RAYDIUM
                     </span>
