@@ -200,7 +200,6 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
               <th className="text-right p-2">MCAP</th>
               <th className="text-right p-2">SOL RESERVE</th>
               <th className="text-center p-2">STATUS</th>
-              <th className="text-right p-2">REPLIES</th>
               <th className="text-right p-2">AGE</th>
             </tr>
           </thead>
@@ -282,7 +281,6 @@ function TokenFeed({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                     </span>
                   )}
                 </td>
-                <td className="text-right p-2 text-[var(--dim)]">{t.reply_count}</td>
                 <td className="text-right p-2 text-[var(--dim)]">
                   {formatAge(t.created_timestamp)}
                 </td>
